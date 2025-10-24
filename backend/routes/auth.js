@@ -54,6 +54,26 @@ router.post('/login', async (req, res) => {
     if(user.row.length === 0) {
         return res.status(400).json({message: 'Invalid credentials'});
     }
+
+    const userData = user.rows[0];
+    const isMatch = await bcrypt.compare(password, userData.password)
+
+    if(!isMatch){
+        return res.status(400).json({message: 'Invalid credentials'});
+    }
+
+    const token = generateToken(userData.id);
+
+    res.cookie('token', token, cookieOptions);
+    res.json({user: {id: userData.id, username: userData.username, 
+        email: userData.email}});
+})
+
+// the data of the loged in user
+
+router.get("/me", async (req, res) => {
+    res.json(req.user);
+    //return info of the logged in user from protection middleware
 })
 
 
