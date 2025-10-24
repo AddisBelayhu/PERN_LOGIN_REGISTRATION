@@ -17,3 +17,43 @@ const generateToken = (id) => {
         expiresIn: '30d'
     });
 }
+
+router.post('/register', async (req, res) => {
+    const {username, email, password} = req.body;
+
+    if (!username || !email || !password) {
+    return res.status(400).join({ message: 'please provide all required rields'});
+}
+const userExists = await pool.query('SELECT * FROM user WHERE email = $1', [email]);
+
+if (userExists.rows.length > 0) {
+    return res.status(400).json({ message: 'user already exists'});
+}
+
+const hashedPassword = await bcrypt.hash(password, 10);
+
+const newuser = await pool.query(
+    'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, name, email',
+    [username, email, hashedPassword]
+);
+
+const token = generateToken(newuser.rows[0].id);
+res.cookie('token', token, cookieOptions);
+return res.status(201).json({user: newuser.rows[0]});
+
+})
+
+//Login
+
+router.post('/login', async (req, res) => {
+    const { mail, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({message: 'Please provide all requied fields'});
+    }
+    const user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if(user.row.length === 0) {
+        return res.status(400).json({message: 'Invalid credentials'});
+    }
+})
+
+
